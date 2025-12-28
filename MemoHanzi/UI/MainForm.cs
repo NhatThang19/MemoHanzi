@@ -220,42 +220,53 @@ namespace MemoHanzi
 
         private void treeView1_AfterLabelEdit(object sender, NodeLabelEditEventArgs e)
         {
-            if (e.Node.Parent == null)
+            // Trường hợp người dùng nhấn Esc hoặc không nhập gì
+            if (string.IsNullOrEmpty(e.Label) || e.Label.Trim() == "")
             {
                 e.CancelEdit = true;
                 return;
             }
 
-            if (e.Label == null || e.Label.Trim() == "")
-            {
-                e.CancelEdit = true;
-                return;
-            }
-
-            TreeNode node = e.Node;
-            string oldPath = node.Tag.ToString();
+            string newName = e.Label.Trim();
+            string oldPath = e.Node.Tag.ToString();
             string parentDir = Path.GetDirectoryName(oldPath);
-            string newName = e.Label;
-            string newPath = Path.Combine(parentDir, newName);
 
             try
             {
                 if (File.Exists(oldPath))
                 {
-                    if (!newPath.EndsWith(".txt")) newPath += ".txt";
-
-                    File.Move(oldPath, newPath);
-                    node.Tag = newPath;
+                    if (!newName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                    {
+                        newName += ".txt";
+                    }
                 }
-                else if (Directory.Exists(oldPath))
+
+                string newPath = Path.Combine(parentDir, newName);
+
+                if (newPath != oldPath && (File.Exists(newPath) || Directory.Exists(newPath)))
+                {
+                    MessageBox.Show("Tên này đã tồn tại, vui lòng chọn tên khác!");
+                    e.CancelEdit = true;
+                    return;
+                }
+
+                if (File.Exists(oldPath))
+                {
+                    File.Move(oldPath, newPath);
+                }
+                else
                 {
                     Directory.Move(oldPath, newPath);
-                    node.Tag = newPath;
                 }
+
+                e.Node.Tag = newPath;
+
+                e.CancelEdit = true;
+                e.Node.Text = newName;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi đổi tên: " + ex.Message);
+                MessageBox.Show("Lỗi khi đổi tên: " + ex.Message);
                 e.CancelEdit = true;
             }
         }
